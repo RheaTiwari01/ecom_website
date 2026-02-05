@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+
+  web:
+    build: .
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+    
+
+  celery:
+    build: .
+    container_name: celery_worker
+    command: celery -A aforro_project worker -l info
+    volumes:
+      - .:/app
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+    
+  redis:
+    image: redis:7
+    container_name: redis_server
+    ports:
+      - "6380:6379"
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: test_ecom
+      MYSQL_ROOT_PASSWORD: rhea1402
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+
+volumes:
+  mysql_data:
